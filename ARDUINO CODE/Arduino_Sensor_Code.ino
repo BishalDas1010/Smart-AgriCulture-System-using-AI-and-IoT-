@@ -85,5 +85,5 @@ void loop() {
   
   Serial.println("-----------------------------");
   
-  delay(10000);  // Delay for 2 seconds
+  delay(10000);  // Delay for 10 seconds
 }
