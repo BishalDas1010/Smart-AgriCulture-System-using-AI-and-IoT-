@@ -94,9 +94,9 @@ const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
 
 // MQTT Broker settings
-const char* mqtt_server = "e9da612c10c54fed802eb3fcbd0ad60d.s1.eu.hivemq.cloud";
+const char* mqtt_server = "YOUR MQTT SERVER LINK";
 const int mqtt_port = 8884;
-const char* mqtt_user = "bishaldas";
+const char* mqtt_user = "YOUR MQTT USER NAME";
 const char* mqtt_password = "YOUR_MQTT_PASSWORD";
 
 // Pin definitions
@@ -243,4 +243,4 @@ This project is released under the MIT License. See the LICENSE file for details
 
 ---
 
-Created by Bishal Das. For questions or support, please contact bishaldas@example.com
+Created by Bishal Das. For questions or support, please contact bishalbishal6659@gmail.com
