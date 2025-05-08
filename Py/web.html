@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soil Water Prediction System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .box {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            flex: 1;
+            min-width: 300px;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        input, button, select {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .error {
+            color: #e74c3c;
+        }
+        .success {
+            color: #27ae60;
+        }
+        #prediction-result {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
+        }
+        canvas {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+        }
+        #loading {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+        #featureInputs {
+            margin-top: 20px;
+        }
+        .feature-input {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .feature-input label {
+            width: 150px;
+            margin-right: 10px;
+        }
+        .feature-input input {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Soil Water Prediction System</h1>
+    
+    <div class="container">
+        <div class="box">
+            <h2>Upload Dataset & Train Model</h2>
+            <p>Upload your soil dataset CSV file to train the prediction model.</p>
+            <input type="file" id="datasetInput" accept=".csv">
+            <button id="trainButton">Train Model</button>
+            <div id="trainingStatus"></div>
+            
+            <div id="modelInfo" style="margin-top: 20px; display: none;">
+                <h3>Model Information</h3>
+                <div id="modelInfoContent"></div>
+            </div>
+        </div>
+        
+        <div class="box">
+            <h2>Make Predictions</h2>
+            <p>Enter soil parameters to predict water requirements.</p>
+            <div id="featureInputs">
+                <p>Please train the model first to see input fields.</p>
+            </div>
+            <button id="predictButton" disabled>Predict Water Requirement</button>
+            <div id="prediction-result"></div>
+        </div>
+    </div>
+    
+    <div class="box">
+        <h2>Results Visualization</h2>
+        <canvas id="resultChart"></canvas>
+    </div>
+    
+    <div id="loading">
+        <p>Processing... Please wait.</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script>
+        // Global variables
+        let chart;
+        let featureNames = [];
+        let API_URL = "http://localhost:8000"; // Change this to your API URL
+        
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('resultChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Actual vs Predicted',
+                        data: [],
+                        backgroundColor: 'rgba(52, 152, 219, 0.5)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Actual vs Predicted Water Requirement',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Actual Water (ml)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Predicted Water (ml)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            
+            // Train model button
+            document.getElementById('trainButton').addEventListener('click', async function() {
+                const fileInput = document.getElementById('datasetInput');
+                if (!fileInput.files.length) {
+                    alert('Please select a CSV file');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('trainingStatus').innerHTML = '<p>Training model...</p>';
+                
+                try {
+                    const response = await fetch(`${API_URL}/train`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        document.getElementById('trainingStatus').innerHTML = `
+                            <p class="success">Model trained successfully!</p>
+                            <p>Mean Squared Error: ${result.metrics.mse.toFixed(4)}</p>
+                            <p>R² Score: ${result.metrics.r2.toFixed(4)}</p>
+                        `;
+                        
+                        // Save feature names
+                        featureNames = result.feature_names;
+                        
+                        // Enable prediction
+                        document.getElementById('predictButton').disabled = false;
+                        
+                        // Create input fields for features
+                        createFeatureInputs(featureNames);
+                        
+                        // Show model info
+                        fetchModelInfo();
+                    } else {
+                        document.getElementById('trainingStatus').innerHTML = `
+                            <p class="error">Error: ${result.detail || 'Failed to train model'}</p>
+                        `;
+                    }
+                } catch (error) {
+                    document.getElementById('trainingStatus').innerHTML = `
+                        <p class="error">Error: ${error.message}</p>
+                    `;
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            });
+            
+            // Predict button
+            document.getElementById('predictButton').addEventListener('click', async function() {
+                if (featureNames.length === 0) {
+                    alert('Please train the model first');
+                    return;
+                }
+                
+                const features = featureNames.map(name => {
+                    const value = parseFloat(document.getElementById(`feature-${name}`).value);
+                    return isNaN(value) ? 0 : value;
+                });
+                
+                document.getElementById('loading').style.display = 'block';
+                
+                try {
+                    const response = await fetch(`${API_URL}/predict`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            features: features
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        document.getElementById('prediction-result').innerHTML = `
+                            Predicted Water Requirement: <span class="success">${result.prediction.toFixed(2)} ml</span>
+                        `;
+                        
+                        // Update chart with a new point
+                        // In a real application, you would have actual values to compare with
+                        // Here we're just showing the prediction
+                        addPointToChart(result.prediction, result.prediction);
+                    } else {
+                        document.getElementById('prediction-result').innerHTML = `
+                            <span class="error">Error: ${result.detail || 'Failed to make prediction'}</span>
+                        `;
+                    }
+                } catch (error) {
+                    document.getElementById('prediction-result').innerHTML = `
+                        <span class="error">Error: ${error.message}</span>
+                    `;
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            });
+        });
+        
+        // Create input fields based on feature names
+        function createFeatureInputs(names) {
+            const container = document.getElementById('featureInputs');
+            container.innerHTML = '';
+            
+            names.forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'feature-input';
+                
+                const label = document.createElement('label');
+                label.htmlFor = `feature-${name}`;
+                label.textContent = name;
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.id = `feature-${name}`;
+                input.name = name;
+                input.placeholder = `Enter ${name}`;
+                input.required = true;
+                input.step = 'any';
+                
+                div.appendChild(label);
+                div.appendChild(input);
+                container.appendChild(div);
+            });
+        }
+        
+        // Add a point to the scatter chart
+        function addPointToChart(actual, predicted) {
+            if (!chart) return;
+            
+            chart.data.datasets[0].data.push({
+                x: actual,
+                y: predicted
+            });
+            
+            chart.update();
+        }
+        
+        // Fetch model information
+        async function fetchModelInfo() {
+            try {
+                const response = await fetch(`${API_URL}/model-info`);
+                const info = await response.json();
+                
+                if (response.ok && !info.error) {
+                    const coefficients = info.coefficients.map((coef, i) => 
+                        `<tr><td>${info.feature_names[i]}</td><td>${coef.toFixed(4)}</td></tr>`
+                    ).join('');
+                    
+                    document.getElementById('modelInfo').style.display = 'block';
+                    document.getElementById('modelInfoContent').innerHTML = `
+                        <p><strong>Model Status:</strong> ${info.status}</p>
+                        <p><strong>Intercept:</strong> ${info.intercept.toFixed(4)}</p>
+                        <table>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Coefficient</th>
+                            </tr>
+                            ${coefficients}
+                        </table>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error fetching model info:', error);
+            }
+        }
+    </script>
+</body>
+</html>
