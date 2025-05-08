@@ -4,7 +4,7 @@
 
 This project is a web-based dashboard that connects to an IoT weather station via MQTT protocol. It displays real-time sensor data and includes an intelligent water prediction model based on multi-linear regression.
 
-![Weather Station Dashboard]()
+![Weather Station Dashboard](https://github.com/BishalDas1010/BishalDas1010-Smart-AgriCulture-System-using-AI-and-IoT-/blob/main/iot%20Project.jpg)
 
 ## Features
 
