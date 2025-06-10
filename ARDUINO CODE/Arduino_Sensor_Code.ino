@@ -62,11 +62,11 @@ void loop() {
   // Send the data string to NodeMCU
   sensorSerial.println(dataString);
   
-  // Print debug information to Serial monitor
+
   Serial.print("Sending to NodeMCU: ");
   Serial.println(dataString);
   
-  // Also print detailed readings to Serial monitor for debugging
+ 
   if (!isnan(temp) && !isnan(hum)) {
     Serial.print("🌡 Temp: "); Serial.print(temp); Serial.println(" °C");
     Serial.print("💧 Humidity: "); Serial.print(hum); Serial.println(" %");
